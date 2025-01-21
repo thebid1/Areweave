@@ -1,0 +1,19 @@
+{
+  "name": "demo-frontend-big",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.5"
+  },
+  "dependencies": {
+    "@ardrive/turbo-sdk": "^1.21.0",
+    "arbundles": "^0.11.2",
+    "vite-plugin-node-polyfills": "^0.23.0"
+  }
+}

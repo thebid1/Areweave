@@ -1,0 +1,81 @@
+<!doctype html>
+
+<title>Arweave File Upload</title>
+
+<button id="connectButton">Connect Wallet</button>
+<button id="chargeButton">Buy $5 worth of Turbo Credits</button>
+
+<p>Connected Wallet: <span id="walletAddress">-</span></p>
+<p>Wallet Balance: <span id="walletBalance">-</span> TC</p>
+
+<form id="uploadForm">
+  <input name="fileInput" type="file" id="fileInput" />
+  <p>File Size: <span id="fileSize">-</span> KiB</p>
+  <p>Upload Costs: <span id="uploadCosts">-</span> TC</p>
+  <button type="submit" id="uploadButton">Upload</button>
+</form>
+
+<ul id="fileList"></ul>
+
+<script type="module">
+  import { ArconnectSigner } from "arbundles/web";
+  import { TurboFactory, USD } from "@ardrive/turbo-sdk/web";
+
+  let turbo;
+  document.getElementById("connectButton").addEventListener("click", async () => {
+    await window.arweaveWallet.connect([
+      "ACCESS_ADDRESS",
+      "ACCESS_PUBLIC_KEY",
+      "SIGNATURE",
+      "SIGN_TRANSACTION",
+    ]);
+    turbo = TurboFactory.authenticated({
+      signer: new ArconnectSigner(window.arweaveWallet),
+    });
+
+    const activeAddress = await window.arweaveWallet.getActiveAddress();
+    document.getElementById("walletAddress").innerText = activeAddress;
+    const balance = await turbo.getBalance();
+    document.getElementById("walletBalance").innerText = balance.winc / 1_000_000_000_000;
+  });
+
+  document.getElementById("chargeButton").addEventListener("click", async () => {
+    const result = await turbo.createCheckoutSession({
+      amount: USD(5.0),
+      owner: activeAddress,
+      promoCodes: ["DDDISCOUNT"], // 20% discount
+    });
+
+    const checkoutButton = document.getElementById("checkoutButton");
+    chargeButton.onclick = () => window.open(result.url, "_blank").focus();
+  });
+
+  document.getElementById("fileInput").addEventListener("change", async (event) => {
+    const fileSizeInKib = Math.ceil(event.currentTarget.files[0].size / 1024);
+    document.getElementById("fileSize").innerText = fileSizeInKib;
+    const [costs] = await turbo.getUploadCosts({
+      bytes: [event.currentTarget.files[0].size],
+    });
+
+    if (fileSizeInKib > 100)
+      document.getElementById("uploadCosts").innerText = costs.winc / 1_000_000_000_000;
+  });
+
+  document.getElementById("uploadForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const file = event.currentTarget.elements.fileInput.files[0];
+
+    const uploadResult = await turbo.uploadFile({
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
+    });
+
+    const fileUrl = `https://arweave.developerdao.com/${uploadResult.id}`;
+    const liElement = document.createElement("li");
+    liElement.innerHTML = `
+        ${file.name}: <a href="${fileUrl}" target="_blank">${fileUrl}</a>
+      `;
+    document.getElementById("fileList").appendChild(liElement);
+  });
+</script>
